@@ -30,13 +30,13 @@ class SalesProvider with ChangeNotifier {
       return sale.timestamp.year == today.year &&
              sale.timestamp.month == today.month &&
              sale.timestamp.day == today.day;
-    }).fold(0.0, (sum, sale) => sum + sale.totalPrice);
+    }).fold(0.0, (sum, sale) => sum + sale.sellingPrice);
   }
 
   Map<String, double> get salesByBrand {
     final Map<String, double> data = {};
     for (var sale in _sales) {
-      data[sale.phoneBrand] = (data[sale.phoneBrand] ?? 0.0) + sale.totalPrice;
+      data[sale.phoneBrand] = (data[sale.phoneBrand] ?? 0.0) + sale.sellingPrice;
     }
     return data;
   }
@@ -52,7 +52,7 @@ class SalesProvider with ChangeNotifier {
     for (var sale in _sales) {
       final saleDate = DateTime(sale.timestamp.year, sale.timestamp.month, sale.timestamp.day);
       if (data.containsKey(saleDate)) {
-        data[saleDate] = (data[saleDate] ?? 0.0) + sale.totalPrice;
+        data[saleDate] = (data[saleDate] ?? 0.0) + sale.sellingPrice;
       }
     }
     return data;

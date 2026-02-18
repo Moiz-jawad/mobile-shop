@@ -30,7 +30,16 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
     );
 
     if (result != null && mounted) {
-      await context.read<PhoneProvider>().updatePhone(result);
+      try {
+        await context.read<PhoneProvider>().updatePhone(result);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Phone updated'), backgroundColor: Colors.green),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -39,9 +48,7 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Record'),
-        content: const Text(
-          'Are you sure you want to delete this phone record?',
-        ),
+        content: const Text('Are you sure you want to delete this phone record?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -66,43 +73,28 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
       context: context,
       builder: (context) => SellDialog(phone: phone),
     );
-    
+
     if (result != null && mounted) {
-      final int quantity = result['quantity'];
-      final String? customerName = result['customerName'];
-      final String? customerContact = result['customerContact'];
+      // Mark phone as sold
+      await context.read<PhoneProvider>().markAsSold(phone.id!);
 
-      final success = await context.read<PhoneProvider>().sellPhone(
-        phone.id!,
-        quantity,
+      // Log the sale
+      final sale = Sale(
+        phoneId: phone.id!,
+        phoneBrand: phone.brand,
+        phoneModel: phone.model,
+        phoneImei: phone.imei1,
+        purchasePrice: phone.purchasePrice,
+        sellingPrice: phone.sellingPrice,
+        paymentMethod: result['paymentMethod'],
+        timestamp: DateTime.now(),
+        customerName: result['customerName'],
+        customerContact: result['customerContact'],
       );
+      await context.read<SalesProvider>().logSale(sale);
 
-      if (success && mounted) {
-        // Log the sale
-        final sale = Sale(
-          phoneId: phone.id!,
-          phoneBrand: phone.brand,
-          phoneModel: phone.model,
-          quantity: quantity,
-          unitPrice: phone.price,
-          totalPrice: phone.price * quantity,
-          timestamp: DateTime.now(),
-          customerName: customerName,
-          customerContact: customerContact,
-        );
-        await context.read<SalesProvider>().logSale(sale);
-        
-        // Show option to print receipt
-        _showReceiptOption(sale, phone);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ Sale failed. Not enough stock.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+      // Show receipt option
+      _showReceiptOption(sale, phone);
     }
   }
 
@@ -134,7 +126,7 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search ${widget.brandName} phones...',
+                hintText: 'Search by model, IMEI, color...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -155,18 +147,20 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
       ),
       body: Consumer<PhoneProvider>(
         builder: (context, provider, child) {
-          // Filter phones by brand and search query using UNFILTERED list
+          // Filter: only available phones for this brand, matching search query
           final phones = provider.allPhones.where((p) {
-            final matchesBrand = p.brand == widget.brandName;
-            if (!matchesBrand) return false;
+            if (p.brand != widget.brandName) return false;
+            if (p.status != 'available') return false;
 
             if (_searchQuery.isEmpty) return true;
 
             final query = _searchQuery.toLowerCase();
             return p.model.toLowerCase().contains(query) ||
-                p.price.toString().contains(query) ||
-                (p.imei1?.toLowerCase().contains(query) ?? false) ||
-                (p.imei2?.toLowerCase().contains(query) ?? false);
+                p.imei1.toLowerCase().contains(query) ||
+                (p.imei2?.toLowerCase().contains(query) ?? false) ||
+                (p.color?.toLowerCase().contains(query) ?? false) ||
+                (p.storage?.toLowerCase().contains(query) ?? false) ||
+                p.sellingPrice.toString().contains(query);
           }).toList();
 
           if (phones.isEmpty) {
@@ -174,14 +168,10 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.mobile_off_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.mobile_off_outlined, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'No phones found for ${widget.brandName}',
+                    'No available phones for ${widget.brandName}',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.grey[600],
@@ -219,9 +209,7 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
   void _showAddPhoneDialog(BuildContext context) async {
     final result = await showDialog<Phone>(
       context: context,
-      builder: (context) => PhoneDialog(
-        initialBrand: widget.brandName,
-      ),
+      builder: (context) => PhoneDialog(initialBrand: widget.brandName),
     );
 
     if (result != null && mounted) {
@@ -229,23 +217,13 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
       final messenger = ScaffoldMessenger.of(context);
       try {
         await provider.addPhone(result);
-        if (mounted) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('✅ Phone added successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        messenger.showSnackBar(
+          const SnackBar(content: Text('✅ Phone added successfully'), backgroundColor: Colors.green),
+        );
       } catch (e) {
-        if (mounted) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('❌ Error adding phone: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        messenger.showSnackBar(
+          SnackBar(content: Text('❌ $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }

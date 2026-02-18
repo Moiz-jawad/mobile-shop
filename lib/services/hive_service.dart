@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/phone.dart';
 
 class HiveService {
-  static const String _boxName = 'phones_v2';
+  static const String _boxName = 'phones_v3';
   static Box? _box;
 
   static Future<Box> _getBox() async {
@@ -18,23 +18,44 @@ class HiveService {
     await _getBox();
   }
 
+  /// Check if an IMEI already exists in inventory
+  static Future<bool> isDuplicateImei(String imei, {int? excludeId}) async {
+    final phones = await getAllPhones();
+    return phones.any((p) =>
+        (p.imei1 == imei || p.imei2 == imei) &&
+        p.id != excludeId);
+  }
+
   static Future<void> addPhone(Phone phone) async {
     try {
       final box = await _getBox();
-      
-      // Store each field individually to avoid Map casting issues on web
+
+      // Duplicate IMEI check
+      if (await isDuplicateImei(phone.imei1)) {
+        throw Exception('IMEI ${phone.imei1} already exists in inventory');
+      }
+      if (phone.imei2 != null && await isDuplicateImei(phone.imei2!)) {
+        throw Exception('IMEI ${phone.imei2} already exists in inventory');
+      }
+
       final phoneMap = <String, dynamic>{
         'brand': phone.brand,
         'model': phone.model,
-        'price': phone.price,
-        'condition': phone.condition,
-        'description': phone.description,
-        'stock': phone.stock,
-        'imei1': phone.imei1 ?? '',
+        'imei1': phone.imei1,
         'imei2': phone.imei2 ?? '',
+        'condition': phone.condition,
+        'color': phone.color ?? '',
+        'storage': phone.storage ?? '',
+        'batteryHealth': phone.batteryHealth ?? '',
+        'purchasePrice': phone.purchasePrice,
+        'sellingPrice': phone.sellingPrice,
+        'status': phone.status,
+        'dateAdded': phone.dateAdded.toIso8601String(),
+        'dateSold': phone.dateSold?.toIso8601String() ?? '',
+        'description': phone.description ?? '',
       };
 
-      debugPrint('➕ Adding phone: ${phone.brand} ${phone.model}');
+      debugPrint('➕ Adding phone: ${phone.brand} ${phone.model} IMEI: ${phone.imei1}');
       final int id = await box.add(phoneMap);
       debugPrint('✅ Phone added with ID: $id. Total: ${box.length}');
     } catch (e, st) {
@@ -46,20 +67,17 @@ class HiveService {
   static Future<List<Phone>> getAllPhones() async {
     try {
       final box = await _getBox();
-      debugPrint('📖 Reading box. Length: ${box.length}');
-
       final List<Phone> phones = [];
+
       for (final key in box.keys) {
         try {
           final raw = box.get(key);
           if (raw == null) continue;
 
-          // Handle both Map<dynamic,dynamic> and Map<String,dynamic>
           final Map<String, dynamic> data = {};
           if (raw is Map) {
             raw.forEach((k, v) => data[k.toString()] = v);
           } else {
-            debugPrint('⚠️ Unexpected data type for key $key: ${raw.runtimeType}');
             continue;
           }
 
@@ -67,15 +85,20 @@ class HiveService {
             id: key is int ? key : int.tryParse(key.toString()),
             brand: (data['brand'] ?? '').toString(),
             model: (data['model'] ?? '').toString(),
-            price: _parseDouble(data['price']),
-            condition: (data['condition'] ?? 'New').toString(),
-            description: (data['description'] ?? '').toString(),
-            stock: _parseInt(data['stock']),
-            imei1: _parseNullableString(data['imei1']),
+            imei1: (data['imei1'] ?? '').toString(),
             imei2: _parseNullableString(data['imei2']),
+            condition: (data['condition'] ?? 'New').toString(),
+            color: _parseNullableString(data['color']),
+            storage: _parseNullableString(data['storage']),
+            batteryHealth: _parseNullableString(data['batteryHealth']),
+            purchasePrice: _parseDouble(data['purchasePrice']),
+            sellingPrice: _parseDouble(data['sellingPrice'] ?? data['price']),
+            status: (data['status'] ?? 'available').toString(),
+            dateAdded: DateTime.tryParse(data['dateAdded']?.toString() ?? '') ?? DateTime.now(),
+            dateSold: DateTime.tryParse(data['dateSold']?.toString() ?? ''),
+            description: _parseNullableString(data['description']),
           );
           phones.add(phone);
-          debugPrint('  ✅ Loaded: ${phone.brand} ${phone.model} (id: ${phone.id})');
         } catch (e) {
           debugPrint('⚠️ Error parsing phone at key $key: $e');
         }
@@ -97,15 +120,29 @@ class HiveService {
         return;
       }
 
+      // Duplicate IMEI check (exclude current phone)
+      if (await isDuplicateImei(phone.imei1, excludeId: phone.id)) {
+        throw Exception('IMEI ${phone.imei1} already exists in inventory');
+      }
+      if (phone.imei2 != null && await isDuplicateImei(phone.imei2!, excludeId: phone.id)) {
+        throw Exception('IMEI ${phone.imei2} already exists in inventory');
+      }
+
       final phoneMap = <String, dynamic>{
         'brand': phone.brand,
         'model': phone.model,
-        'price': phone.price,
-        'condition': phone.condition,
-        'description': phone.description,
-        'stock': phone.stock,
-        'imei1': phone.imei1 ?? '',
+        'imei1': phone.imei1,
         'imei2': phone.imei2 ?? '',
+        'condition': phone.condition,
+        'color': phone.color ?? '',
+        'storage': phone.storage ?? '',
+        'batteryHealth': phone.batteryHealth ?? '',
+        'purchasePrice': phone.purchasePrice,
+        'sellingPrice': phone.sellingPrice,
+        'status': phone.status,
+        'dateAdded': phone.dateAdded.toIso8601String(),
+        'dateSold': phone.dateSold?.toIso8601String() ?? '',
+        'description': phone.description ?? '',
       };
 
       debugPrint('✏️ Updating phone ID: ${phone.id}');
@@ -135,12 +172,6 @@ class HiveService {
     if (value is double) return value;
     if (value is int) return value.toDouble();
     return double.tryParse(value.toString()) ?? 0.0;
-  }
-
-  static int _parseInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    return int.tryParse(value.toString()) ?? 0;
   }
 
   static String? _parseNullableString(dynamic value) {

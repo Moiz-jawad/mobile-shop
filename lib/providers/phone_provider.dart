@@ -8,9 +8,15 @@ class PhoneProvider with ChangeNotifier {
   bool _isLoading = false;
   String _searchQuery = '';
 
-  List<Phone> get phones => _searchQuery.isEmpty ? _phones : _filteredPhones;
+  // Getters
+  List<Phone> get phones => _searchQuery.isEmpty ? _availablePhones : _filteredPhones;
   List<Phone> get allPhones => _phones;
+  List<Phone> get availablePhones => _availablePhones;
+  List<Phone> get soldPhones => _phones.where((p) => p.status == 'sold').toList();
   bool get isLoading => _isLoading;
+
+  List<Phone> get _availablePhones =>
+      _phones.where((p) => p.status == 'available').toList();
 
   Future<void> loadPhones({bool showLoading = false}) async {
     debugPrint('🔄 loadPhones called. Current phones: ${_phones.length}');
@@ -21,14 +27,13 @@ class PhoneProvider with ChangeNotifier {
 
     try {
       _phones = await HiveService.getAllPhones();
-      debugPrint('📱 Loaded ${_phones.length} phones from Hive');
+      debugPrint('📱 Loaded ${_phones.length} phones (${_availablePhones.length} available)');
       _applyFilter();
     } catch (e) {
       debugPrint('❌ Error loading phones: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
-      debugPrint('✅ notifyListeners called. phones.length: ${phones.length}');
     }
   }
 
@@ -36,13 +41,10 @@ class PhoneProvider with ChangeNotifier {
     debugPrint('➕ addPhone called for: ${phone.brand} ${phone.model}');
     try {
       await HiveService.addPhone(phone);
-      debugPrint('✅ HiveService.addPhone completed');
-      // Reload from Hive to get the generated ID
       _phones = await HiveService.getAllPhones();
-      debugPrint('📱 After add, loaded ${_phones.length} phones');
       _applyFilter();
       notifyListeners();
-      debugPrint('✅ notifyListeners called after add');
+      debugPrint('✅ Phone added. Total: ${_phones.length}');
     } catch (e) {
       debugPrint('❌ Error in addPhone: $e');
       rethrow;
@@ -73,26 +75,36 @@ class PhoneProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> sellPhone(int phoneId, int quantity) async {
+  /// Mark a phone as sold
+  Future<void> markAsSold(int phoneId) async {
     final phone = _phones.firstWhere((p) => p.id == phoneId);
+    final updatedPhone = phone.copyWith(
+      status: 'sold',
+      dateSold: DateTime.now(),
+    );
+    await HiveService.updatePhone(updatedPhone);
+    _phones = await HiveService.getAllPhones();
+    _applyFilter();
+    notifyListeners();
+    debugPrint('✅ Phone ${phone.brand} ${phone.model} marked as sold');
+  }
 
-    if (phone.stock < quantity) {
-      debugPrint('❌ Not enough stock. Available: ${phone.stock}, Requested: $quantity');
-      return false;
-    }
+  /// Mark a sold phone as returned (back to available)
+  Future<void> markAsReturned(int phoneId) async {
+    final phone = _phones.firstWhere((p) => p.id == phoneId);
+    final updatedPhone = phone.copyWith(
+      status: 'available',
+    );
+    await HiveService.updatePhone(updatedPhone);
+    _phones = await HiveService.getAllPhones();
+    _applyFilter();
+    notifyListeners();
+    debugPrint('✅ Phone ${phone.brand} ${phone.model} returned to inventory');
+  }
 
-    final updatedPhone = phone.copyWith(stock: phone.stock - quantity);
-    try {
-      await HiveService.updatePhone(updatedPhone);
-      _phones = await HiveService.getAllPhones();
-      _applyFilter();
-      notifyListeners();
-      debugPrint('✅ Sold $quantity units of ${phone.brand} ${phone.model}. Remaining stock: ${updatedPhone.stock}');
-      return true;
-    } catch (e) {
-      debugPrint('❌ Error in sellPhone: $e');
-      return false;
-    }
+  /// Check for duplicate IMEI
+  Future<bool> isDuplicateImei(String imei, {int? excludeId}) async {
+    return HiveService.isDuplicateImei(imei, excludeId: excludeId);
   }
 
   void setSearchQuery(String query) {
@@ -103,16 +115,17 @@ class PhoneProvider with ChangeNotifier {
 
   void _applyFilter() {
     if (_searchQuery.isEmpty) {
-      _filteredPhones = List.from(_phones);
+      _filteredPhones = List.from(_availablePhones);
     } else {
       final query = _searchQuery.toLowerCase();
-      _filteredPhones = _phones.where((phone) {
-        final matchesBrand = phone.brand.toLowerCase().contains(query);
-        final matchesModel = phone.model.toLowerCase().contains(query);
-        final matchesPrice = phone.price.toString().contains(query);
-        final matchesImei1 = phone.imei1?.toLowerCase().contains(query) ?? false;
-        final matchesImei2 = phone.imei2?.toLowerCase().contains(query) ?? false;
-        return matchesBrand || matchesModel || matchesPrice || matchesImei1 || matchesImei2;
+      _filteredPhones = _availablePhones.where((phone) {
+        return phone.brand.toLowerCase().contains(query) ||
+            phone.model.toLowerCase().contains(query) ||
+            phone.sellingPrice.toString().contains(query) ||
+            phone.imei1.toLowerCase().contains(query) ||
+            (phone.imei2?.toLowerCase().contains(query) ?? false) ||
+            (phone.color?.toLowerCase().contains(query) ?? false) ||
+            (phone.storage?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
   }

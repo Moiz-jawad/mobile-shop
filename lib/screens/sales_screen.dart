@@ -138,27 +138,31 @@ class _SaleListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy • HH:mm');
+    final isProfit = sale.profit >= 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.green[100],
-          child: const Icon(Icons.trending_up, color: Colors.green),
+          backgroundColor: isProfit ? Colors.green[100] : Colors.red[100],
+          child: Icon(
+            isProfit ? Icons.trending_up : Icons.trending_down,
+            color: isProfit ? Colors.green : Colors.red,
+          ),
         ),
         title: Text(
           '${sale.phoneBrand} ${sale.phoneModel}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${sale.quantity} unit(s) • ${dateFormat.format(sale.timestamp)}',
+          '${dateFormat.format(sale.timestamp)} • ${sale.paymentMethod ?? "Cash"}',
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '${NumberFormat('#,##0', 'en_US').format(sale.totalPrice)} PKR',
+              '${NumberFormat('#,##0', 'en_US').format(sale.sellingPrice)} PKR',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -166,8 +170,12 @@ class _SaleListItem extends StatelessWidget {
               ),
             ),
             Text(
-              '@ ${NumberFormat('#,##0', 'en_US').format(sale.unitPrice)} PKR',
-              style: Theme.of(context).textTheme.bodySmall,
+              '${isProfit ? "+" : ""}${NumberFormat('#,##0', 'en_US').format(sale.profit)} PKR',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isProfit ? Colors.green[700] : Colors.red[700],
+              ),
             ),
           ],
         ),

@@ -128,7 +128,7 @@ class MyHomePageState extends State<MyHomePage> {
                 onChanged: (value) =>
                     context.read<PhoneProvider>().setSearchQuery(value),
                 decoration: const InputDecoration(
-                  hintText: 'Search by brand, model or price...',
+                  hintText: 'Search by brand, model, IMEI, color...',
                   prefixIcon: Icon(Icons.search),
                 ),
               ),
@@ -163,7 +163,7 @@ class MyHomePageState extends State<MyHomePage> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Tap the + button or the 🐛 button to add phones',
+                              'Tap the + button to add your first phone',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[500],

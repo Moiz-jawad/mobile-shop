@@ -18,164 +18,168 @@ class PhoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final profit = phone.sellingPrice - phone.purchasePrice;
+    final isProfit = profit >= 0;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Top: Brand + Model + Condition badge
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        phone.model,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        '${phone.brand} ${phone.model}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
                             ),
                       ),
-                      Text(
-                        phone.brand,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                      ),
+                      if (phone.color != null || phone.storage != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          [phone.color, phone.storage]
+                              .where((e) => e != null)
+                              .join(' • '),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                Text(
-                  '${NumberFormat('#,##0', 'en_US').format(phone.price)} PKR',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.teal[700],
-                      ),
-                ),
+                _conditionBadge(context),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              phone.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildConditionBadge(context, phone.condition),
-                const SizedBox(width: 12),
-                Icon(
-                  Icons.inventory_2,
-                  size: 18,
-                  color: _getStockColor(phone.stock),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Stock: ${phone.stock}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: _getStockColor(phone.stock),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (phone.stock == 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.red[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'SOLD OUT',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red[900],
-                      ),
-                    ),
-                  )
-                else if (phone.stock <= 5)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'LOW STOCK',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange[900],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (phone.imei1 != null || phone.imei2 != null) ...[
-              const SizedBox(height: 8),
-              Row(
+            const SizedBox(height: 10),
+
+            // IMEI
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (phone.imei1 != null) ...[
-                    const Icon(Icons.qr_code, size: 16, color: Colors.blueGrey),
-                    const SizedBox(width: 4),
-                    Text(
-                      'IMEI 1: ${phone.imei1}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.blueGrey,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  Icon(Icons.fingerprint, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 6),
+                  Text(
+                    phone.imei1,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      color: Colors.grey[700],
                     ),
-                    const SizedBox(width: 12),
-                  ],
+                  ),
                   if (phone.imei2 != null) ...[
-                    const Icon(Icons.qr_code, size: 16, color: Colors.blueGrey),
-                    const SizedBox(width: 4),
+                    Text(' / ', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
                     Text(
-                      'IMEI 2: ${phone.imei2}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.blueGrey,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      phone.imei2!,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                      ),
                     ),
                   ],
                 ],
               ),
+            ),
+            const SizedBox(height: 10),
+
+            // Battery health (iPhone only)
+            if (phone.batteryHealth != null && (phone.brand.toLowerCase().contains('apple') || phone.brand.toLowerCase().contains('iphone'))) ...[
+              Row(
+                children: [
+                  Icon(Icons.battery_full, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Battery: ${phone.batteryHealth}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
             ],
-            const Divider(height: 24),
+
+            // Pricing row
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton.icon(
-                  onPressed: phone.stock > 0 ? onSell : null,
-                  icon: const Icon(Icons.shopping_cart, size: 18),
-                  label: const Text('Sell'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey[300],
+                // Selling price
+                Text(
+                  '${NumberFormat('#,##0', 'en_US').format(phone.sellingPrice)} PKR',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+                const SizedBox(width: 12),
+                // Profit badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isProfit
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${isProfit ? '+' : ''}${NumberFormat('#,##0', 'en_US').format(profit)} PKR',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isProfit ? Colors.green[700] : Colors.red[700],
+                    ),
                   ),
                 ),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text('Edit'),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: const Text('Delete'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-                    ),
-                  ],
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Action buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Edit'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    foregroundColor: Colors.blue,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete, size: 16),
+                  label: const Text('Delete'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    foregroundColor: Colors.red,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                FilledButton.icon(
+                  onPressed: onSell,
+                  icon: const Icon(Icons.sell, size: 16),
+                  label: const Text('Sell'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
                 ),
               ],
             ),
@@ -185,30 +189,20 @@ class PhoneCard extends StatelessWidget {
     );
   }
 
-  Color _getStockColor(int stock) {
-    if (stock == 0) return Colors.red;
-    if (stock <= 5) return Colors.orange;
-    return Colors.green;
-  }
-
-  Widget _buildConditionBadge(BuildContext context, String condition) {
-    final isNew = condition.toLowerCase() == 'new';
+  Widget _conditionBadge(BuildContext context) {
+    final isNew = phone.condition == 'New';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isNew ? Colors.blue[100] : Colors.amber[100],
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isNew ? Colors.blue : Colors.amber,
-          width: 0.5,
-        ),
+        color: isNew ? Colors.blue.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        condition.toUpperCase(),
+        phone.condition,
         style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: isNew ? Colors.blue[900] : Colors.amber[900],
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: isNew ? Colors.blue[700] : Colors.orange[700],
         ),
       ),
     );

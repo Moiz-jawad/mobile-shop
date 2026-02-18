@@ -14,42 +14,62 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _brandController;
   late TextEditingController _modelController;
-  late TextEditingController _priceController;
+  late TextEditingController _purchasePriceController;
+  late TextEditingController _sellingPriceController;
   late TextEditingController _descController;
-  late TextEditingController _stockController;
+  late TextEditingController _imei1Controller;
+  late TextEditingController _imei2Controller;
+  late TextEditingController _colorController;
+  late TextEditingController _storageController;
+  late TextEditingController _batteryHealthController;
   late String _condition;
 
   @override
   void initState() {
     super.initState();
-    _brandController = TextEditingController(text: widget.phone.brand);
-    _modelController = TextEditingController(text: widget.phone.model);
-    _priceController = TextEditingController(text: widget.phone.price.toString());
-    _descController = TextEditingController(text: widget.phone.description);
-    _stockController = TextEditingController(text: widget.phone.stock.toString());
-    _condition = widget.phone.condition;
+    final p = widget.phone;
+    _brandController = TextEditingController(text: p.brand);
+    _modelController = TextEditingController(text: p.model);
+    _purchasePriceController = TextEditingController(text: p.purchasePrice.toString());
+    _sellingPriceController = TextEditingController(text: p.sellingPrice.toString());
+    _descController = TextEditingController(text: p.description ?? '');
+    _imei1Controller = TextEditingController(text: p.imei1);
+    _imei2Controller = TextEditingController(text: p.imei2 ?? '');
+    _colorController = TextEditingController(text: p.color ?? '');
+    _storageController = TextEditingController(text: p.storage ?? '');
+    _batteryHealthController = TextEditingController(text: p.batteryHealth ?? '');
+    _condition = p.condition;
   }
 
   @override
   void dispose() {
     _brandController.dispose();
     _modelController.dispose();
-    _priceController.dispose();
+    _purchasePriceController.dispose();
+    _sellingPriceController.dispose();
     _descController.dispose();
-    _stockController.dispose();
+    _imei1Controller.dispose();
+    _imei2Controller.dispose();
+    _colorController.dispose();
+    _storageController.dispose();
+    _batteryHealthController.dispose();
     super.dispose();
   }
 
   void _saveChanges() {
     if (_formKey.currentState!.validate()) {
-      final updatedPhone = Phone(
-        id: widget.phone.id,
-        brand: _brandController.text,
-        model: _modelController.text,
-        price: double.parse(_priceController.text),
+      final updatedPhone = widget.phone.copyWith(
+        brand: _brandController.text.trim(),
+        model: _modelController.text.trim(),
+        imei1: _imei1Controller.text.trim(),
+        imei2: _imei2Controller.text.trim().isEmpty ? null : _imei2Controller.text.trim(),
         condition: _condition,
-        description: _descController.text,
-        stock: int.parse(_stockController.text),
+        color: _colorController.text.trim().isEmpty ? null : _colorController.text.trim(),
+        storage: _storageController.text.trim().isEmpty ? null : _storageController.text.trim(),
+        batteryHealth: _batteryHealthController.text.trim().isEmpty ? null : _batteryHealthController.text.trim(),
+        purchasePrice: double.parse(_purchasePriceController.text.trim()),
+        sellingPrice: double.parse(_sellingPriceController.text.trim()),
+        description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
       );
       Navigator.pop(context, updatedPhone);
     }
@@ -80,6 +100,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
             key: _formKey,
             child: ListView(
               children: [
+                // Device Identity
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -87,74 +108,153 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Phone Details',
+                          '📱 Device Identity',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         TextFormField(
                           controller: _brandController,
                           decoration: const InputDecoration(
-                            labelText: 'Brand',
+                            labelText: 'Brand *',
                             prefixIcon: Icon(Icons.business),
-                            helperText: 'e.g., Apple, Samsung, Google',
                           ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Please enter brand'
-                              : null,
+                          textCapitalization: TextCapitalization.words,
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
                         TextFormField(
                           controller: _modelController,
                           decoration: const InputDecoration(
-                            labelText: 'Model',
+                            labelText: 'Model *',
                             prefixIcon: Icon(Icons.phone_android),
-                            helperText: 'e.g., iPhone 15 Pro, Galaxy S24',
                           ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Please enter model'
-                              : null,
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _imei1Controller,
+                          decoration: const InputDecoration(
+                            labelText: 'IMEI 1 *',
+                            prefixIcon: Icon(Icons.fingerprint),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (v) => v == null || v.isEmpty ? 'IMEI is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _imei2Controller,
+                          decoration: const InputDecoration(
+                            labelText: 'IMEI 2 (optional)',
+                            prefixIcon: Icon(Icons.fingerprint),
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Specifications
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '⚙️ Specifications',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                         const SizedBox(height: 20),
                         DropdownButtonFormField<String>(
                           initialValue: _condition,
                           decoration: const InputDecoration(
-                            labelText: 'Condition',
+                            labelText: 'Condition *',
                             prefixIcon: Icon(Icons.category),
                           ),
                           items: const [
                             DropdownMenuItem(value: 'New', child: Text('New')),
                             DropdownMenuItem(value: 'Used', child: Text('Used')),
                           ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => _condition = value);
-                            }
+                          onChanged: (v) {
+                            if (v != null) setState(() => _condition = v);
                           },
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _colorController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Color',
+                                  prefixIcon: Icon(Icons.palette),
+                                ),
+                                textCapitalization: TextCapitalization.words,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _storageController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Storage',
+                                  prefixIcon: Icon(Icons.storage),
+                                  hintText: '128GB',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_condition == 'Used' && (_brandController.text.trim().toLowerCase().contains('apple') || _brandController.text.trim().toLowerCase().contains('iphone'))) ...[
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _batteryHealthController,
+                            decoration: const InputDecoration(
+                              labelText: 'Battery Health',
+                              prefixIcon: Icon(Icons.battery_full),
+                              hintText: '85%',
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Pricing
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '💰 Pricing',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                         const SizedBox(height: 20),
                         Row(
                           children: [
                             Expanded(
                               child: TextFormField(
-                                controller: _priceController,
+                                controller: _purchasePriceController,
                                 decoration: const InputDecoration(
-                                  labelText: 'Price (PKR)',
-                                  prefixIcon: Icon(Icons.payments_outlined),
-                                  helperText: 'Unit price',
+                                  labelText: 'Purchase Price (PKR) *',
+                                  prefixIcon: Icon(Icons.shopping_bag),
                                 ),
                                 keyboardType: TextInputType.number,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter price';
-                                  }
-                                  if (double.tryParse(value) == null) {
-                                    return 'Enter a valid number';
-                                  }
-                                  if (double.parse(value) <= 0) {
-                                    return 'Price must be positive';
-                                  }
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return 'Required';
+                                  if (double.tryParse(v) == null) return 'Invalid';
                                   return null;
                                 },
                               ),
@@ -162,49 +262,45 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: TextFormField(
-                                controller: _stockController,
+                                controller: _sellingPriceController,
                                 decoration: const InputDecoration(
-                                  labelText: 'Stock Quantity',
-                                  prefixIcon: Icon(Icons.inventory_2),
-                                  helperText: 'Available units',
+                                  labelText: 'Selling Price (PKR) *',
+                                  prefixIcon: Icon(Icons.sell),
                                 ),
                                 keyboardType: TextInputType.number,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter stock';
-                                  }
-                                  final stock = int.tryParse(value);
-                                  if (stock == null) {
-                                    return 'Enter a valid number';
-                                  }
-                                  if (stock < 0) {
-                                    return 'Cannot be negative';
-                                  }
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return 'Required';
+                                  if (double.tryParse(v) == null) return 'Invalid';
                                   return null;
                                 },
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        TextFormField(
-                          controller: _descController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description',
-                            prefixIcon: Icon(Icons.description),
-                            helperText: 'Product details and features',
-                            alignLabelWithHint: true,
-                          ),
-                          maxLines: 4,
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Please enter description'
-                              : null,
-                        ),
                       ],
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Notes
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: TextFormField(
+                      controller: _descController,
+                      decoration: const InputDecoration(
+                        labelText: 'Notes (optional)',
+                        prefixIcon: Icon(Icons.notes),
+                        alignLabelWithHint: true,
+                      ),
+                      maxLines: 3,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
+
+                // Bottom buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -216,7 +312,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    ElevatedButton.icon(
+                    FilledButton.icon(
                       onPressed: _saveChanges,
                       icon: const Icon(Icons.save),
                       label: const Padding(

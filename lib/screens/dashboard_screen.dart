@@ -17,7 +17,10 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text(
+          'Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: Icon(
@@ -32,58 +35,81 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
         child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 800),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               Text(
-                'Dashboard',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                'Overview',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
 
               // Key Metrics Row
               LayoutBuilder(
                 builder: (context, constraints) {
+                  final salesProvider = context.watch<SalesProvider>();
+                  final phoneProvider = context.watch<PhoneProvider>();
+                  final todayProfit = salesProvider.sales
+                      .where((s) =>
+                          s.timestamp.year == DateTime.now().year &&
+                          s.timestamp.month == DateTime.now().month &&
+                          s.timestamp.day == DateTime.now().day)
+                      .fold<double>(0, (sum, s) => sum + s.profit);
+                  final phoneSoldToday = salesProvider.sales
+                      .where((s) =>
+                          s.timestamp.year == DateTime.now().year &&
+                          s.timestamp.month == DateTime.now().month &&
+                          s.timestamp.day == DateTime.now().day)
+                      .length;
+
                   return Wrap(
                     spacing: 20,
                     runSpacing: 20,
                     children: [
                       _MetricCard(
-                        title: "Today's Sales",
+                        title: "Today's Revenue",
                         value:
-                            '${NumberFormat('#,##0', 'en_US').format(context.watch<SalesProvider>().todayTotalSales)} PKR',
+                            '${NumberFormat('#,##0', 'en_US').format(salesProvider.todayTotalSales)} PKR',
                         icon: Icons.attach_money,
                         color: Colors.green,
                         width: constraints.maxWidth > 600
-                            ? (constraints.maxWidth - 40) / 3
-                            : constraints.maxWidth,
+                            ? (constraints.maxWidth - 60) / 4
+                            : (constraints.maxWidth - 20) / 2,
                       ),
                       _MetricCard(
-                        title: 'Total Inventory',
+                        title: "Today's Profit",
                         value:
-                            '${context.watch<PhoneProvider>().phones.length} Models',
+                            '${NumberFormat('#,##0', 'en_US').format(todayProfit)} PKR',
+                        icon: Icons.trending_up,
+                        color: todayProfit >= 0 ? Colors.teal : Colors.red,
+                        width: constraints.maxWidth > 600
+                            ? (constraints.maxWidth - 60) / 4
+                            : (constraints.maxWidth - 20) / 2,
+                      ),
+                      _MetricCard(
+                        title: 'Available Stock',
+                        value:
+                            '${phoneProvider.availablePhones.length} Phones',
                         icon: Icons.inventory_2,
                         color: Colors.blue,
                         width: constraints.maxWidth > 600
-                            ? (constraints.maxWidth - 40) / 3
-                            : constraints.maxWidth,
+                            ? (constraints.maxWidth - 60) / 4
+                            : (constraints.maxWidth - 20) / 2,
                       ),
                       _MetricCard(
-                        title: 'Low Stock Items',
-                        value:
-                            '${context.watch<PhoneProvider>().phones.where((p) => p.stock <= 5).length}',
-                        icon: Icons.warning_amber_rounded,
-                        color: Colors.orange,
+                        title: 'Sold Today',
+                        value: '$phoneSoldToday',
+                        icon: Icons.sell,
+                        color: Colors.purple,
                         width: constraints.maxWidth > 600
-                            ? (constraints.maxWidth - 40) / 3
-                            : constraints.maxWidth,
+                            ? (constraints.maxWidth - 60) / 4
+                            : (constraints.maxWidth - 20) / 2,
                       ),
                     ],
                   );
@@ -94,9 +120,7 @@ class DashboardScreen extends StatelessWidget {
 
               Text(
                 'Quick Actions',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -108,15 +132,12 @@ class DashboardScreen extends StatelessWidget {
                     icon: const Icon(Icons.add),
                     label: const Text('Add New Phone'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     ),
                   ),
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final phones = context.read<PhoneProvider>().phones;
+                      final phones = context.read<PhoneProvider>().availablePhones;
                       if (phones.isNotEmpty) {
                         await PdfExportService.exportInventory(phones);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -127,40 +148,32 @@ class DashboardScreen extends StatelessWidget {
                         );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('No inventory to export'),
-                          ),
+                          const SnackBar(content: Text('No inventory to export')),
                         );
                       }
                     },
                     icon: const Icon(Icons.file_download),
                     label: const Text('Export Inventory'),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     ),
                   ),
-
                 ],
               ),
 
               const SizedBox(height: 40),
 
+              // Recent Sales section
               Text(
-                'Low Stock Alerts',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                'Recent Sales',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              Consumer<PhoneProvider>(
+              Consumer<SalesProvider>(
                 builder: (context, provider, child) {
-                  final lowStockPhones =
-                      provider.phones.where((p) => p.stock <= 5).toList();
+                  final recentSales = provider.sales.take(5).toList();
 
-                  if (lowStockPhones.isEmpty) {
+                  if (recentSales.isEmpty) {
                     return Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -169,37 +182,56 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.check_circle, color: Colors.green),
+                          Icon(Icons.info_outline, color: Colors.blue),
                           SizedBox(width: 12),
-                          Text('All items are well stocked!'),
+                          Text('No sales recorded yet.'),
                         ],
                       ),
                     );
                   }
 
                   return Column(
-                    children: lowStockPhones
-                        .map(
-                          (phone) => Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              leading: const Icon(
-                                Icons.warning_amber_rounded,
-                                color: Colors.orange,
-                              ),
-                              title: Text('${phone.brand} ${phone.model}'),
-                              trailing: Text(
-                                'Stock: ${phone.stock}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
-                                ),
-                              ),
-                              onTap: onAddPhonePressed, // Navigate to inventory
+                    children: recentSales.map((sale) {
+                      final isProfit = sale.profit >= 0;
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isProfit
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
+                            child: Icon(
+                              isProfit ? Icons.trending_up : Icons.trending_down,
+                              color: isProfit ? Colors.green : Colors.red,
+                              size: 20,
                             ),
                           ),
-                        )
-                        .toList(),
+                          title: Text('${sale.phoneBrand} ${sale.phoneModel}'),
+                          subtitle: Text(
+                            '${DateFormat('MMM dd, hh:mm a').format(sale.timestamp)} • ${sale.paymentMethod ?? 'Cash'}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${NumberFormat('#,##0', 'en_US').format(sale.sellingPrice)} PKR',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                '${isProfit ? '+' : ''}${NumberFormat('#,##0', 'en_US').format(sale.profit)} PKR',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isProfit ? Colors.green[700] : Colors.red[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   );
                 },
               ),
@@ -231,7 +263,7 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -243,35 +275,27 @@ class _MetricCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                ),
-                Text(
-                  value,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

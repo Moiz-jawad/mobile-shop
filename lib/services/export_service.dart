@@ -99,7 +99,6 @@ class PdfExportService {
   static pw.Widget _buildFooter(pw.Context context) {
     return pw.Container(
       alignment: pw.Alignment.centerRight,
-      // margin: const pw.EdgeInsets.top(20),
       child: pw.Text(
         'Page ${context.pageNumber} of ${context.pagesCount}',
         style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
@@ -108,16 +107,17 @@ class PdfExportService {
   }
 
   static pw.Widget _salesTable(List<Sale> sales) {
-    final headers = ['Date', 'Brand', 'Model', 'Qty', 'Unit', 'Total'];
+    final headers = ['Date', 'Brand', 'Model', 'IMEI', 'Sold For', 'Profit', 'Payment'];
     final data = sales
         .map(
           (s) => [
             _dateFormatter.format(s.timestamp),
             s.phoneBrand,
             s.phoneModel,
-            s.quantity.toString(),
-            _formatPKR(s.unitPrice),
-            _formatPKR(s.totalPrice),
+            s.phoneImei.length > 8 ? '...${s.phoneImei.substring(s.phoneImei.length - 8)}' : s.phoneImei,
+            _formatPKR(s.sellingPrice),
+            _formatPKR(s.profit),
+            s.paymentMethod ?? 'Cash',
           ],
         )
         .toList();
@@ -128,12 +128,13 @@ class PdfExportService {
       headerStyle: pw.TextStyle(
         fontWeight: pw.FontWeight.bold,
         color: PdfColors.white,
+        fontSize: 9,
       ),
+      cellStyle: const pw.TextStyle(fontSize: 8),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
       cellHeight: 25,
       cellAlignments: {
         0: pw.Alignment.centerLeft,
-        3: pw.Alignment.center,
         4: pw.Alignment.centerRight,
         5: pw.Alignment.centerRight,
       },
@@ -141,16 +142,16 @@ class PdfExportService {
   }
 
   static pw.Widget _inventoryTable(List<Phone> phones) {
-    final headers = ['Brand', 'Model', 'Price', 'Stock', 'IMEI 1', 'IMEI 2'];
+    final headers = ['Brand', 'Model', 'IMEI', 'Condition', 'Selling Price', 'Profit'];
     final data = phones
         .map(
           (p) => [
             p.brand,
             p.model,
-            _formatPKR(p.price),
-            p.stock.toString(),
-            p.imei1 ?? '-',
-            p.imei2 ?? '-',
+            p.imei1.length > 8 ? '...${p.imei1.substring(p.imei1.length - 8)}' : p.imei1,
+            '${p.condition}${p.color != null ? ' ${p.color}' : ''}${p.storage != null ? ' ${p.storage}' : ''}',
+            _formatPKR(p.sellingPrice),
+            _formatPKR(p.profit),
           ],
         )
         .toList();
@@ -161,14 +162,14 @@ class PdfExportService {
       headerStyle: pw.TextStyle(
         fontWeight: pw.FontWeight.bold,
         color: PdfColors.white,
+        fontSize: 9,
       ),
+      cellStyle: const pw.TextStyle(fontSize: 8),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
       cellHeight: 25,
       cellAlignments: {
-        2: pw.Alignment.centerRight,
-        3: pw.Alignment.center,
-        4: pw.Alignment.centerLeft,
-        5: pw.Alignment.centerLeft,
+        4: pw.Alignment.centerRight,
+        5: pw.Alignment.centerRight,
       },
     );
   }
@@ -209,6 +210,8 @@ class PdfExportService {
                     pw.Text('Time: ${_timeFormatter.format(sale.timestamp)}'),
                   ],
                 ),
+                pw.SizedBox(height: 5),
+                pw.Text('Payment: ${sale.paymentMethod ?? "Cash"}'),
                 pw.SizedBox(height: 10),
                 if (sale.customerName != null || sale.customerContact != null) ...[
                   pw.Text(
@@ -224,55 +227,39 @@ class PdfExportService {
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
                 ),
                 pw.SizedBox(height: 5),
-                pw.Row(
-                  children: [
-                    pw.Expanded(
-                      flex: 3,
-                      child: pw.Text('Item Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    ),
-                    pw.Expanded(
-                      child: pw.Text('Qty', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
-                    ),
-                    pw.Expanded(
-                      flex: 2,
-                      child: pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
-                    ),
-                  ],
-                ),
-                pw.Divider(thickness: 0.5),
-                pw.Row(
-                  children: [
-                    pw.Expanded(
-                      flex: 3,
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text('${sale.phoneBrand} ${sale.phoneModel}'),
-                          if (phone.imei1 != null) pw.Text('IMEI 1: ${phone.imei1}', style: const pw.TextStyle(fontSize: 8)),
-                          if (phone.imei2 != null) pw.Text('IMEI 2: ${phone.imei2}', style: const pw.TextStyle(fontSize: 8)),
-                        ],
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey400),
+                    borderRadius: pw.BorderRadius.circular(4),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        '${sale.phoneBrand} ${sale.phoneModel}',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
-                    ),
-                    pw.Expanded(
-                      child: pw.Text(sale.quantity.toString(), textAlign: pw.TextAlign.center),
-                    ),
-                    pw.Expanded(
-                      flex: 2,
-                      child: pw.Text(_formatPKR(sale.totalPrice), textAlign: pw.TextAlign.right),
-                    ),
-                  ],
+                      pw.Text('IMEI: ${phone.imei1}'),
+                      if (phone.imei2 != null) pw.Text('IMEI 2: ${phone.imei2}'),
+                      if (phone.color != null) pw.Text('Color: ${phone.color}'),
+                      if (phone.storage != null) pw.Text('Storage: ${phone.storage}'),
+                      pw.Text('Condition: ${phone.condition}'),
+                    ],
+                  ),
                 ),
+                pw.SizedBox(height: 15),
                 pw.Divider(thickness: 1),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Text(
                       'TOTAL AMOUNT:',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
                     ),
                     pw.Text(
-                      _formatPKR(sale.totalPrice),
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                      _formatPKR(sale.sellingPrice),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),

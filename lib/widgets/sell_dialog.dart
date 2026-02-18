@@ -13,193 +13,246 @@ class SellDialog extends StatefulWidget {
 
 class _SellDialogState extends State<SellDialog> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _quantityController;
   late TextEditingController _customerNameController;
   late TextEditingController _customerContactController;
-  int _quantity = 1;
+  String _paymentMethod = 'Cash';
 
   @override
   void initState() {
     super.initState();
-    _quantityController = TextEditingController(text: '1');
     _customerNameController = TextEditingController();
     _customerContactController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _quantityController.dispose();
     _customerNameController.dispose();
     _customerContactController.dispose();
     super.dispose();
   }
 
-  double get _totalPrice => widget.phone.price * _quantity;
-
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Sell Phone'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Phone info
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${widget.phone.brand} ${widget.phone.model}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Unit Price: ${NumberFormat('#,##0', 'en_US').format(widget.phone.price)} PKR',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    Text(
-                      'Available Stock: ${widget.phone.stock}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: widget.phone.stock <= 5
-                                ? Colors.orange
-                                : Colors.green,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    if (widget.phone.imei1 != null || widget.phone.imei2 != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'IMEI: ${[widget.phone.imei1, widget.phone.imei2].where((e) => e != null).join(" / ")}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.blueGrey,
-                            ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Quantity input
-              TextFormField(
-                controller: _quantityController,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                  prefixIcon: Icon(Icons.shopping_cart),
-                  helperText: 'Number of units to sell',
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  setState(() {
-                    _quantity = int.tryParse(value) ?? 1;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter quantity';
-                  }
-                  final qty = int.tryParse(value);
-                  if (qty == null || qty <= 0) {
-                    return 'Enter a valid quantity';
-                  }
-                  if (qty > widget.phone.stock) {
-                    return 'Not enough stock (available: ${widget.phone.stock})';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              // Customer info
-              const Divider(),
-              const SizedBox(height: 8),
-              Text(
-                'Customer Details (Optional)',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _customerNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Customer Name',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _customerContactController,
-                decoration: const InputDecoration(
-                  labelText: 'Contact Number',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
-              // Total price
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green[200]!),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Total Price:',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      '${NumberFormat('#,##0', 'en_US').format(_totalPrice)} PKR',
+    final phone = widget.phone;
+    final profit = phone.sellingPrice - phone.purchasePrice;
+    final isProfit = profit >= 0;
+
+    return Dialog(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 450, maxHeight: 550),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
+              child: Row(
+                children: [
+                  const Icon(Icons.sell, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Confirm Sale',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.green[700],
                           ),
                     ),
-                  ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      // Phone info card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${phone.brand} ${phone.model}',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            if (phone.color != null || phone.storage != null)
+                              Text(
+                                [phone.color, phone.storage].where((e) => e != null).join(' • '),
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'IMEI: ${phone.imei1}',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.blueGrey,
+                                    fontFamily: 'monospace',
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Price & Profit
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isProfit ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isProfit ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Selling Price:'),
+                                Text(
+                                  '${NumberFormat('#,##0', 'en_US').format(phone.sellingPrice)} PKR',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Purchase Price:'),
+                                Text(
+                                  '${NumberFormat('#,##0', 'en_US').format(phone.purchasePrice)} PKR',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  isProfit ? '📈 Profit:' : '📉 Loss:',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '${NumberFormat('#,##0', 'en_US').format(profit.abs())} PKR',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: isProfit ? Colors.green[700] : Colors.red[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Payment method
+                      DropdownButtonFormField<String>(
+                        initialValue: _paymentMethod,
+                        decoration: const InputDecoration(
+                          labelText: 'Payment Method',
+                          prefixIcon: Icon(Icons.payment),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'Cash', child: Text('💵 Cash')),
+                          DropdownMenuItem(value: 'Card', child: Text('💳 Card')),
+                          DropdownMenuItem(value: 'Installment', child: Text('📋 Installment')),
+                          DropdownMenuItem(value: 'Bank Transfer', child: Text('🏦 Bank Transfer')),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) setState(() => _paymentMethod = v);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Customer details
+                      Text(
+                        'Customer Details (Optional)',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _customerNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Customer Name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _customerContactController,
+                        decoration: const InputDecoration(
+                          labelText: 'Contact Number',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+            // Fixed bottom buttons
+            const Divider(height: 0),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop({
+                        'paymentMethod': _paymentMethod,
+                        'customerName': _customerNameController.text.isEmpty
+                            ? null
+                            : _customerNameController.text.trim(),
+                        'customerContact': _customerContactController.text.isEmpty
+                            ? null
+                            : _customerContactController.text.trim(),
+                      });
+                    },
+                    icon: const Icon(Icons.check),
+                    label: const Text('Confirm Sale'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton.icon(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, {
-                'quantity': _quantity,
-                'customerName': _customerNameController.text.isEmpty ? null : _customerNameController.text,
-                'customerContact': _customerContactController.text.isEmpty ? null : _customerContactController.text,
-              });
-            }
-          },
-          icon: const Icon(Icons.check),
-          label: const Text('Confirm Sale'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ],
     );
   }
 }

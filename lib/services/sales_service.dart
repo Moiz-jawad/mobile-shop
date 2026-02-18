@@ -27,7 +27,7 @@ class SalesService {
       final saleMap = sale.toMap();
       saleMap.remove('id'); // Let Hive handle the key
       
-      debugPrint('💰 Logging sale to Hive: ${sale.phoneBrand} ${sale.phoneModel} x ${sale.quantity}');
+      debugPrint('💰 Logging sale to Hive: ${sale.phoneBrand} ${sale.phoneModel} IMEI: ${sale.phoneImei}');
       await box.add(saleMap); 
     } catch (e) {
       debugPrint('❌ Error logging sale to Hive: $e');
