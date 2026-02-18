@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
 import '../screens/sales_screen.dart';
 import '../screens/dashboard_screen.dart';
+import '../screens/analytics_screen.dart';
 
 class AppNavigation extends StatefulWidget {
   const AppNavigation({super.key});
@@ -14,21 +15,28 @@ class _AppNavigationState extends State<AppNavigation> {
   int _selectedIndex = 0;
   final GlobalKey<MyHomePageState> _inventoryKey = GlobalKey<MyHomePageState>();
 
+  // Cache the screens to prevent rebuilding on every setState
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      DashboardScreen(onAddPhonePressed: _navigateToInventoryAndAdd),
+      MyHomePage(key: _inventoryKey),
+      const SalesScreen(),
+      const AnalyticsScreen(),
+    ];
+  }
+
   void _navigateToInventoryAndAdd() {
     setState(() {
-      _selectedIndex = 1; // Navigate to Inventory tab
+      _selectedIndex = 1;
     });
-    // Trigger add dialog after frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _inventoryKey.currentState?.showAddPhoneDialog();
     });
   }
-
-  List<Widget> get _screens => [
-    DashboardScreen(onAddPhonePressed: _navigateToInventoryAndAdd),
-    MyHomePage(key: _inventoryKey),
-    const SalesScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +70,25 @@ class _AppNavigationState extends State<AppNavigation> {
                   selectedIcon: Icon(Icons.history),
                   label: Text('Sales'),
                 ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.analytics_outlined),
+                  selectedIcon: Icon(Icons.analytics),
+                  label: Text('Analytics'),
+                ),
               ],
             ),
-          Expanded(child: _screens[_selectedIndex]),
+          // Use IndexedStack to keep all screens alive
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _screens,
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: !isLargeScreen
           ? BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
               currentIndex: _selectedIndex,
               onTap: (index) {
                 setState(() {
@@ -90,6 +110,11 @@ class _AppNavigationState extends State<AppNavigation> {
                   icon: Icon(Icons.history_outlined),
                   activeIcon: Icon(Icons.history),
                   label: 'Sales',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.analytics_outlined),
+                  activeIcon: Icon(Icons.analytics),
+                  label: 'Analytics',
                 ),
               ],
             )

@@ -122,7 +122,7 @@ class PdfExportService {
         )
         .toList();
 
-    return pw.Table.fromTextArray(
+    return pw.TableHelper.fromTextArray(
       headers: headers,
       data: data,
       headerStyle: pw.TextStyle(
@@ -141,7 +141,7 @@ class PdfExportService {
   }
 
   static pw.Widget _inventoryTable(List<Phone> phones) {
-    final headers = ['Brand', 'Model', 'Price', 'Stock'];
+    final headers = ['Brand', 'Model', 'Price', 'Stock', 'IMEI 1', 'IMEI 2'];
     final data = phones
         .map(
           (p) => [
@@ -149,11 +149,13 @@ class PdfExportService {
             p.model,
             _formatPKR(p.price),
             p.stock.toString(),
+            p.imei1 ?? '-',
+            p.imei2 ?? '-',
           ],
         )
         .toList();
 
-    return pw.Table.fromTextArray(
+    return pw.TableHelper.fromTextArray(
       headers: headers,
       data: data,
       headerStyle: pw.TextStyle(
@@ -162,7 +164,138 @@ class PdfExportService {
       ),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.blue900),
       cellHeight: 25,
-      cellAlignments: {2: pw.Alignment.centerRight, 3: pw.Alignment.center},
+      cellAlignments: {
+        2: pw.Alignment.centerRight,
+        3: pw.Alignment.center,
+        4: pw.Alignment.centerLeft,
+        5: pw.Alignment.centerLeft,
+      },
     );
+  }
+
+  static Future<void> exportReceipt(Sale sale, Phone phone) async {
+    try {
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a5,
+          margin: const pw.EdgeInsets.all(20),
+          build: (context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Center(
+                  child: pw.Text(
+                    'SALE RECEIPT',
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.blue900,
+                    ),
+                  ),
+                ),
+                pw.Center(
+                  child: pw.Text(
+                    'Mobile Shop Management',
+                    style: const pw.TextStyle(fontSize: 10),
+                  ),
+                ),
+                pw.Divider(thickness: 1),
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Date: ${_dateFormatter.format(sale.timestamp)}'),
+                    pw.Text('Time: ${_timeFormatter.format(sale.timestamp)}'),
+                  ],
+                ),
+                pw.SizedBox(height: 10),
+                if (sale.customerName != null || sale.customerContact != null) ...[
+                  pw.Text(
+                    'CUSTOMER DETAILS:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                  ),
+                  pw.Text('Name: ${sale.customerName ?? "N/A"}'),
+                  pw.Text('Contact: ${sale.customerContact ?? "N/A"}'),
+                  pw.SizedBox(height: 10),
+                ],
+                pw.Text(
+                  'ITEM DETAILS:',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                ),
+                pw.SizedBox(height: 5),
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 3,
+                      child: pw.Text('Item Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Expanded(
+                      child: pw.Text('Qty', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                    ),
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+                    ),
+                  ],
+                ),
+                pw.Divider(thickness: 0.5),
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 3,
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('${sale.phoneBrand} ${sale.phoneModel}'),
+                          if (phone.imei1 != null) pw.Text('IMEI 1: ${phone.imei1}', style: const pw.TextStyle(fontSize: 8)),
+                          if (phone.imei2 != null) pw.Text('IMEI 2: ${phone.imei2}', style: const pw.TextStyle(fontSize: 8)),
+                        ],
+                      ),
+                    ),
+                    pw.Expanded(
+                      child: pw.Text(sale.quantity.toString(), textAlign: pw.TextAlign.center),
+                    ),
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Text(_formatPKR(sale.totalPrice), textAlign: pw.TextAlign.right),
+                    ),
+                  ],
+                ),
+                pw.Divider(thickness: 1),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'TOTAL AMOUNT:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                    ),
+                    pw.Text(
+                      _formatPKR(sale.totalPrice),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 30),
+                pw.Center(
+                  child: pw.Text(
+                    'Thank you for your business!',
+                    style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      await Printing.layoutPdf(
+        onLayout: (format) async => pdf.save(),
+        name: 'receipt_${sale.timestamp.millisecondsSinceEpoch}.pdf',
+      );
+    } catch (e) {
+      debugPrint('Export Error: $e');
+      rethrow;
+    }
   }
 }

@@ -67,6 +67,8 @@ class PhoneCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
+                _buildConditionBadge(context, phone.condition),
+                const SizedBox(width: 12),
                 Icon(
                   Icons.inventory_2,
                   size: 18,
@@ -89,7 +91,7 @@ class PhoneCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'OUT OF STOCK',
+                      'SOLD OUT',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -115,6 +117,36 @@ class PhoneCard extends StatelessWidget {
                   ),
               ],
             ),
+            if (phone.imei1 != null || phone.imei2 != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  if (phone.imei1 != null) ...[
+                    const Icon(Icons.qr_code, size: 16, color: Colors.blueGrey),
+                    const SizedBox(width: 4),
+                    Text(
+                      'IMEI 1: ${phone.imei1}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.blueGrey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  if (phone.imei2 != null) ...[
+                    const Icon(Icons.qr_code, size: 16, color: Colors.blueGrey),
+                    const SizedBox(width: 4),
+                    Text(
+                      'IMEI 2: ${phone.imei2}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.blueGrey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
             const Divider(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -157,5 +189,28 @@ class PhoneCard extends StatelessWidget {
     if (stock == 0) return Colors.red;
     if (stock <= 5) return Colors.orange;
     return Colors.green;
+  }
+
+  Widget _buildConditionBadge(BuildContext context, String condition) {
+    final isNew = condition.toLowerCase() == 'new';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: isNew ? Colors.blue[100] : Colors.amber[100],
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isNew ? Colors.blue : Colors.amber,
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        condition.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: isNew ? Colors.blue[900] : Colors.amber[900],
+        ),
+      ),
+    );
   }
 }

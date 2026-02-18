@@ -14,17 +14,23 @@ class SellDialog extends StatefulWidget {
 class _SellDialogState extends State<SellDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _quantityController;
+  late TextEditingController _customerNameController;
+  late TextEditingController _customerContactController;
   int _quantity = 1;
 
   @override
   void initState() {
     super.initState();
     _quantityController = TextEditingController(text: '1');
+    _customerNameController = TextEditingController();
+    _customerContactController = TextEditingController();
   }
 
   @override
   void dispose() {
     _quantityController.dispose();
+    _customerNameController.dispose();
+    _customerContactController.dispose();
     super.dispose();
   }
 
@@ -71,6 +77,15 @@ class _SellDialogState extends State<SellDialog> {
                             fontWeight: FontWeight.w600,
                           ),
                     ),
+                    if (widget.phone.imei1 != null || widget.phone.imei2 != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'IMEI: ${[widget.phone.imei1, widget.phone.imei2].where((e) => e != null).join(" / ")}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.blueGrey,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -102,6 +117,33 @@ class _SellDialogState extends State<SellDialog> {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 16),
+              // Customer info
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                'Customer Details (Optional)',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _customerNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Customer Name',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _customerContactController,
+                decoration: const InputDecoration(
+                  labelText: 'Contact Number',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
               // Total price
@@ -143,7 +185,11 @@ class _SellDialogState extends State<SellDialog> {
         ElevatedButton.icon(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, _quantity);
+              Navigator.pop(context, {
+                'quantity': _quantity,
+                'customerName': _customerNameController.text.isEmpty ? null : _customerNameController.text,
+                'customerContact': _customerContactController.text.isEmpty ? null : _customerContactController.text,
+              });
             }
           },
           icon: const Icon(Icons.check),

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_shop/models/sale.dart';
-import 'package:mobile_shop/providers/sales_provider.dart';
-import 'package:mobile_shop/services/export_service.dart';
 import 'package:provider/provider.dart';
+import '../services/export_service.dart';
 import '../providers/phone_provider.dart';
-import '../widgets/phone_card.dart';
 import '../widgets/phone_dialog.dart';
-import '../widgets/sell_dialog.dart';
-import '../screens/edit_phone_screen.dart';
 import '../models/phone.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/brand_card.dart';
+import 'brand_inventory_screen.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -32,105 +30,57 @@ class MyHomePageState extends State<MyHomePage> {
   }
 
   void _showPhoneDialog({Phone? phone}) async {
+    debugPrint('📋 _showPhoneDialog called. Editing: ${phone != null}');
+    
     final result = await showDialog<Phone>(
       context: context,
-      builder: (context) => PhoneDialog(phone: phone),
+      builder: (ctx) => PhoneDialog(phone: phone),
     );
+
+    debugPrint('📋 Dialog result: ${result != null ? "${result.brand} ${result.model}" : "NULL (user cancelled)"}');
 
     if (result != null && mounted) {
       final provider = context.read<PhoneProvider>();
-      if (phone == null) {
-        await provider.addPhone(result);
-      } else {
-        await provider.updatePhone(result);
-      }
-    }
-  }
-
-  void _navigateToEditScreen(Phone phone) async {
-    final result = await Navigator.push<Phone>(
-      context,
-      MaterialPageRoute(builder: (context) => EditPhoneScreen(phone: phone)),
-    );
-
-    if (result != null && mounted) {
-      await context.read<PhoneProvider>().updatePhone(result);
-    }
-  }
-
-  void _confirmDelete(int id) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Record'),
-        content: const Text(
-          'Are you sure you want to delete this phone record?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await context.read<PhoneProvider>().deletePhone(id);
-    }
-  }
-
-  void _handleSell(Phone phone) async {
-    final quantity = await showDialog<int>(
-      context: context,
-      builder: (context) => SellDialog(phone: phone),
-    );
-
-    if (quantity != null && mounted) {
-      final success = await context.read<PhoneProvider>().sellPhone(
-        phone.id!,
-        quantity,
-      );
-
-      if (success && mounted) {
-        // Log the sale
-        final sale = Sale(
-          phoneId: phone.id!,
-          phoneBrand: phone.brand,
-          phoneModel: phone.model,
-          quantity: quantity,
-          unitPrice: phone.price,
-          totalPrice: phone.price * quantity,
-          timestamp: DateTime.now(),
-        );
-        await context.read<SalesProvider>().logSale(sale);
-
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ Sold $quantity unit(s) of ${phone.brand} ${phone.model}',
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        if (phone == null) {
+          debugPrint('📋 Calling provider.addPhone...');
+          await provider.addPhone(result);
+          debugPrint('📋 provider.addPhone completed! phones count: ${provider.allPhones.length}');
+          if (mounted) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('✅ Phone added successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          await provider.updatePhone(result);
+          if (mounted) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('✅ Phone updated successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('❌ Error in _showPhoneDialog: $e');
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('❌ Error saving phone: $e'),
+              backgroundColor: Colors.red,
             ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ Sale failed. Not enough stock.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
+          );
+        }
       }
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +105,15 @@ class MyHomePageState extends State<MyHomePage> {
               }
             },
           ),
+          IconButton(
+            icon: Icon(
+              context.watch<ThemeProvider>().isDarkMode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+            tooltip: 'Toggle Theme',
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -177,6 +136,8 @@ class MyHomePageState extends State<MyHomePage> {
               Expanded(
                 child: Consumer<PhoneProvider>(
                   builder: (context, provider, child) {
+                    debugPrint('🔄 Consumer rebuilding. phones: ${provider.phones.length}, allPhones: ${provider.allPhones.length}, isLoading: ${provider.isLoading}');
+                    
                     if (provider.isLoading) {
                       return const Center(child: CircularProgressIndicator());
                     }
@@ -200,21 +161,54 @@ class MyHomePageState extends State<MyHomePage> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Tap the + button or the 🐛 button to add phones',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                            ),
                           ],
                         ),
                       );
                     }
 
-                    return ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: provider.phones.length,
-                      itemBuilder: (context, index) {
-                        final phone = provider.phones[index];
-                        return PhoneCard(
-                          phone: phone,
-                          onEdit: () => _navigateToEditScreen(phone),
-                          onDelete: () => _confirmDelete(phone.id!),
-                          onSell: () => _handleSell(phone),
+                    // Group phones by brand
+                    final Map<String, int> brandCounts = {};
+                    for (var phone in provider.phones) {
+                      brandCounts[phone.brand] = (brandCounts[phone.brand] ?? 0) + 1;
+                    }
+
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+                        return GridView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 1.0,
+                          ),
+                          itemCount: brandCounts.length,
+                          itemBuilder: (context, index) {
+                            final brand = brandCounts.keys.elementAt(index);
+                            final count = brandCounts[brand]!;
+                            return BrandCard(
+                              brandName: brand,
+                              itemCount: count,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        BrandInventoryScreen(brandName: brand),
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         );
                       },
                     );

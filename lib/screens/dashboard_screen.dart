@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../providers/phone_provider.dart';
 import '../providers/sales_provider.dart';
 import '../services/export_service.dart';
+import '../providers/theme_provider.dart';
 
 class DashboardScreen extends StatelessWidget {
   final VoidCallback? onAddPhonePressed;
@@ -14,9 +15,25 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Center(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              context.watch<ThemeProvider>().isDarkMode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+            tooltip: 'Toggle Theme',
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 1000),
           child: Column(
@@ -125,11 +142,71 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+
                 ],
+              ),
+
+              const SizedBox(height: 40),
+
+              Text(
+                'Low Stock Alerts',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Consumer<PhoneProvider>(
+                builder: (context, provider, child) {
+                  final lowStockPhones =
+                      provider.phones.where((p) => p.stock <= 5).toList();
+
+                  if (lowStockPhones.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.green),
+                          SizedBox(width: 12),
+                          Text('All items are well stocked!'),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: lowStockPhones
+                        .map(
+                          (phone) => Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              leading: const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.orange,
+                              ),
+                              title: Text('${phone.brand} ${phone.model}'),
+                              trailing: Text(
+                                'Stock: ${phone.stock}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              onTap: onAddPhonePressed, // Navigate to inventory
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -156,7 +233,7 @@ class _MetricCard extends StatelessWidget {
       width: width,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

@@ -17,6 +17,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
   late TextEditingController _priceController;
   late TextEditingController _descController;
   late TextEditingController _stockController;
+  late String _condition;
 
   @override
   void initState() {
@@ -26,6 +27,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
     _priceController = TextEditingController(text: widget.phone.price.toString());
     _descController = TextEditingController(text: widget.phone.description);
     _stockController = TextEditingController(text: widget.phone.stock.toString());
+    _condition = widget.phone.condition;
   }
 
   @override
@@ -45,6 +47,7 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
         brand: _brandController.text,
         model: _modelController.text,
         price: double.parse(_priceController.text),
+        condition: _condition,
         description: _descController.text,
         stock: int.parse(_stockController.text),
       );
@@ -112,6 +115,23 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
                           validator: (value) => value == null || value.isEmpty
                               ? 'Please enter model'
                               : null,
+                        ),
+                        const SizedBox(height: 20),
+                        DropdownButtonFormField<String>(
+                          initialValue: _condition,
+                          decoration: const InputDecoration(
+                            labelText: 'Condition',
+                            prefixIcon: Icon(Icons.category),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'New', child: Text('New')),
+                            DropdownMenuItem(value: 'Used', child: Text('Used')),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _condition = value);
+                            }
+                          },
                         ),
                         const SizedBox(height: 20),
                         Row(

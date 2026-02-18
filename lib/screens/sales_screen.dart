@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_shop/models/sale.dart';
 import 'package:mobile_shop/providers/sales_provider.dart';
+import 'package:mobile_shop/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../services/export_service.dart';
@@ -46,6 +47,16 @@ class _SalesScreenState extends State<SalesScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<SalesProvider>().loadSales(),
           ),
+          IconButton(
+            icon: Icon(
+              context.watch<ThemeProvider>().isDarkMode
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            onPressed: () => context.read<ThemeProvider>().toggleTheme(),
+            tooltip: 'Toggle Theme',
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Consumer<SalesProvider>(

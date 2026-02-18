@@ -1,0 +1,11 @@
+﻿Analyzing mobile_shop_management_system...
+
+  error - lib\screens\dashboard_screen.dart:145:19 - Expected to find ']'. - expected_token
+  error - lib\screens\dashboard_screen.dart:206:13 - Expected an identifier. - missing_identifier
+  error - lib\screens\dashboard_screen.dart:206:13 - Expected to find ')'. - expected_token
+  error - lib\services\export_service.dart:283:28 - In constant expressions, operands of this operator must be of type 'bool', 'num', 'String' or 'null'. - const_eval_type_bool_num_string
+           - The error is in the field initializer of 'TextStyle', and occurs here at C:\Users\Muzzi Sahito\AppData\Local\Pub\Cache\hosted\pub.dev\pdf-3.11.3\lib\src\widgets\text_style.dart:145:14.
+   info - lib\services\export_service.dart:125:12 - 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib\services\export_service.dart:158:12 - 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+6 issues found.

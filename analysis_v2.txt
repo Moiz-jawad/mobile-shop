@@ -1,0 +1,4 @@
+﻿Analyzing mobile_shop_management_system...                      
+
+  error - Expected to find ')' - lib\screens\dashboard_screen.dart:210:6 - expected_token
+
