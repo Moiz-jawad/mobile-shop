@@ -1,0 +1,20 @@
+rules_version='2'
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Explicitly allow phones collection
+    match /phones/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Explicitly allow sales collection
+    match /sales/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Default catch-all (optional, keeping existing time-based as fallback for others)
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2026, 3, 20);
+    }
+  }
+}

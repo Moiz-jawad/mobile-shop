@@ -1,16 +1,40 @@
 {
-  "hosting": {
-    "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "mobile-shop-management-deec8",
+          "appId": "1:596605891115:android:d4feefc4dde5939396706e",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "mobile-shop-management-deec8",
+          "configurations": {
+            "android": "1:596605891115:android:d4feefc4dde5939396706e",
+            "ios": "1:596605891115:ios:2f0ae8ec7ce6d20d96706e",
+            "macos": "1:596605891115:ios:2f0ae8ec7ce6d20d96706e",
+            "web": "1:596605891115:web:8f66a0e0458dbe0a96706e",
+            "windows": "1:596605891115:web:f410ec523710c2a096706e"
+          }
+        }
       }
-    ]
+    }
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-south1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "mobile-shop",
+        "supportEmail": "moizjawaad@gmail.com"
+      }
+    }
   }
 }

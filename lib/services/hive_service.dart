@@ -53,6 +53,8 @@ class HiveService {
         'dateAdded': phone.dateAdded.toIso8601String(),
         'dateSold': phone.dateSold?.toIso8601String() ?? '',
         'description': phone.description ?? '',
+        'syncStatus': 'pending',
+        'lastModified': DateTime.now().toIso8601String(),
       };
 
       debugPrint('➕ Adding phone: ${phone.brand} ${phone.model} IMEI: ${phone.imei1}');
@@ -143,6 +145,8 @@ class HiveService {
         'dateAdded': phone.dateAdded.toIso8601String(),
         'dateSold': phone.dateSold?.toIso8601String() ?? '',
         'description': phone.description ?? '',
+        'syncStatus': 'pending',
+        'lastModified': DateTime.now().toIso8601String(),
       };
 
       debugPrint('✏️ Updating phone ID: ${phone.id}');
@@ -163,6 +167,79 @@ class HiveService {
     } catch (e) {
       debugPrint('❌ Error deleting phone: $e');
       rethrow;
+    }
+  }
+
+  /// Get all phones that haven't been synced to Firestore yet
+  static Future<List<Map<String, dynamic>>> getPendingPhones() async {
+    final box = await _getBox();
+    final List<Map<String, dynamic>> pending = [];
+    for (final key in box.keys) {
+      final raw = box.get(key);
+      if (raw == null) continue;
+      final Map<String, dynamic> data = {};
+      if (raw is Map) {
+        raw.forEach((k, v) => data[k.toString()] = v);
+      }
+      if (data['syncStatus'] != 'synced') {
+        data['_hiveKey'] = key;
+        pending.add(data);
+      }
+    }
+    return pending;
+  }
+
+  /// Mark a phone as synced after successful Firestore upload
+  static Future<void> markAsSynced(int hiveKey) async {
+    final box = await _getBox();
+    final raw = box.get(hiveKey);
+    if (raw == null) return;
+    final Map<String, dynamic> data = {};
+    if (raw is Map) {
+      raw.forEach((k, v) => data[k.toString()] = v);
+    }
+    data['syncStatus'] = 'synced';
+    await box.put(hiveKey, data);
+  }
+
+  /// Get all phone records as raw maps (for sync)
+  static Future<List<Map<String, dynamic>>> getAllPhoneRawMaps() async {
+    final box = await _getBox();
+    final List<Map<String, dynamic>> results = [];
+    for (final key in box.keys) {
+      final raw = box.get(key);
+      if (raw == null) continue;
+      final Map<String, dynamic> data = {};
+      if (raw is Map) {
+        raw.forEach((k, v) => data[k.toString()] = v);
+      }
+      data['_hiveKey'] = key;
+      results.add(data);
+    }
+    return results;
+  }
+
+  /// Upsert a phone from Firestore (cloud → local)
+  static Future<void> upsertFromCloud(Map<String, dynamic> cloudData) async {
+    final box = await _getBox();
+    final imei1 = cloudData['imei1']?.toString() ?? '';
+    if (imei1.isEmpty) return;
+
+    // Find existing by IMEI
+    int? existingKey;
+    for (final key in box.keys) {
+      final raw = box.get(key);
+      if (raw is Map && raw['imei1']?.toString() == imei1) {
+        existingKey = key is int ? key : int.tryParse(key.toString());
+        break;
+      }
+    }
+
+    cloudData['syncStatus'] = 'synced';
+    if (existingKey != null) {
+      await box.put(existingKey, cloudData);
+    } else {
+      await box.add(cloudData);
     }
   }
 

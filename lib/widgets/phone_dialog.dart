@@ -88,7 +88,10 @@ class _PhoneDialogState extends State<PhoneDialog> {
 
     return Dialog(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 650),
+        constraints: BoxConstraints(
+          maxWidth: 520,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -333,7 +336,7 @@ class _PhoneDialogState extends State<PhoneDialog> {
       context,
       MaterialPageRoute(builder: (context) => const BarcodeScannerDialog()),
     );
-    if (result != null) {
+    if (result != null && mounted) {
       controller.text = result;
     }
   }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/phone_provider.dart';
 import '../providers/sales_provider.dart';
+import '../providers/sync_provider.dart';
 import '../services/export_service.dart';
 import '../providers/theme_provider.dart';
 
@@ -22,6 +23,16 @@ class DashboardScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          // Sync status indicator
+          Consumer<SyncProvider>(
+            builder: (context, sync, _) {
+              return IconButton(
+                icon: Icon(sync.statusIcon, color: sync.statusColor),
+                tooltip: sync.statusText,
+                onPressed: () => sync.manualSync(),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               context.watch<ThemeProvider>().isDarkMode
@@ -36,85 +47,93 @@ class DashboardScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         child: Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 800),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-              Text(
-                'Overview',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 20),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Overview',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 20),
 
-              // Key Metrics Row
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final salesProvider = context.watch<SalesProvider>();
-                  final phoneProvider = context.watch<PhoneProvider>();
-                  final todayProfit = salesProvider.sales
-                      .where((s) =>
-                          s.timestamp.year == DateTime.now().year &&
-                          s.timestamp.month == DateTime.now().month &&
-                          s.timestamp.day == DateTime.now().day)
-                      .fold<double>(0, (sum, s) => sum + s.profit);
-                  final phoneSoldToday = salesProvider.sales
-                      .where((s) =>
-                          s.timestamp.year == DateTime.now().year &&
-                          s.timestamp.month == DateTime.now().month &&
-                          s.timestamp.day == DateTime.now().day)
-                      .length;
+                // Key Metrics Row
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final salesProvider = context.watch<SalesProvider>();
+                    final phoneProvider = context.watch<PhoneProvider>();
+                    final todayProfit = salesProvider.sales
+                        .where((s) =>
+                            s.timestamp.year == DateTime.now().year &&
+                            s.timestamp.month == DateTime.now().month &&
+                            s.timestamp.day == DateTime.now().day)
+                        .fold<double>(0, (sum, s) => sum + s.profit);
+                    final phoneSoldToday = salesProvider.sales
+                        .where((s) =>
+                            s.timestamp.year == DateTime.now().year &&
+                            s.timestamp.month == DateTime.now().month &&
+                            s.timestamp.day == DateTime.now().day)
+                        .length;
 
-                  return Wrap(
-                    spacing: 20,
-                    runSpacing: 20,
-                    children: [
-                      _MetricCard(
-                        title: "Today's Revenue",
-                        value:
-                            '${NumberFormat('#,##0', 'en_US').format(salesProvider.todayTotalSales)} PKR',
-                        icon: Icons.attach_money,
-                        color: Colors.green,
-                        width: constraints.maxWidth > 600
-                            ? (constraints.maxWidth - 60) / 4
-                            : (constraints.maxWidth - 20) / 2,
-                      ),
-                      _MetricCard(
-                        title: "Today's Profit",
-                        value:
-                            '${NumberFormat('#,##0', 'en_US').format(todayProfit)} PKR',
-                        icon: Icons.trending_up,
-                        color: todayProfit >= 0 ? Colors.teal : Colors.red,
-                        width: constraints.maxWidth > 600
-                            ? (constraints.maxWidth - 60) / 4
-                            : (constraints.maxWidth - 20) / 2,
-                      ),
-                      _MetricCard(
-                        title: 'Available Stock',
-                        value:
-                            '${phoneProvider.availablePhones.length} Phones',
-                        icon: Icons.inventory_2,
-                        color: Colors.blue,
-                        width: constraints.maxWidth > 600
-                            ? (constraints.maxWidth - 60) / 4
-                            : (constraints.maxWidth - 20) / 2,
-                      ),
-                      _MetricCard(
-                        title: 'Sold Today',
-                        value: '$phoneSoldToday',
-                        icon: Icons.sell,
-                        color: Colors.purple,
-                        width: constraints.maxWidth > 600
-                            ? (constraints.maxWidth - 60) / 4
-                            : (constraints.maxWidth - 20) / 2,
-                      ),
-                    ],
-                  );
-                },
-              ),
+                    // Calculate number of columns based on width
+                    int crossAxisCount;
+                    if (constraints.maxWidth > 1000) {
+                      crossAxisCount = 4;
+                    } else if (constraints.maxWidth > 600) {
+                      crossAxisCount = 2; // Keep 2 for tablets to allow cards to be wider
+                    } else {
+                      crossAxisCount = 2; // Mobile also 2
+                    }
+
+                    // Calculate width for each card considering spacing
+                    final double spacing = 20;
+                    final double availableWidth =
+                        constraints.maxWidth - (spacing * (crossAxisCount - 1));
+                    final double itemWidth = availableWidth / crossAxisCount;
+
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: [
+                        _MetricCard(
+                          title: "Today's Revenue",
+                          value:
+                              '${NumberFormat('#,##0', 'en_US').format(salesProvider.todayTotalSales)} PKR',
+                          icon: Icons.attach_money,
+                          color: Colors.green,
+                          width: itemWidth,
+                        ),
+                        _MetricCard(
+                          title: "Today's Profit",
+                          value:
+                              '${NumberFormat('#,##0', 'en_US').format(todayProfit)} PKR',
+                          icon: Icons.trending_up,
+                          color: todayProfit >= 0 ? Colors.teal : Colors.red,
+                          width: itemWidth,
+                        ),
+                        _MetricCard(
+                          title: 'Available Stock',
+                          value:
+                              '${phoneProvider.availablePhones.length} Phones',
+                          icon: Icons.inventory_2,
+                          color: Colors.blue,
+                          width: itemWidth,
+                        ),
+                        _MetricCard(
+                          title: 'Sold Today',
+                          value: '$phoneSoldToday',
+                          icon: Icons.sell,
+                          color: Colors.purple,
+                          width: itemWidth,
+                        ),
+                      ],
+                    );
+                  },
+                ),
 
               const SizedBox(height: 40),
 

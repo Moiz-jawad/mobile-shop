@@ -145,59 +145,105 @@ class _BrandInventoryScreenState extends State<BrandInventoryScreen> {
           ),
         ),
       ),
-      body: Consumer<PhoneProvider>(
-        builder: (context, provider, child) {
-          // Filter: only available phones for this brand, matching search query
-          final phones = provider.allPhones.where((p) {
-            if (p.brand != widget.brandName) return false;
-            if (p.status != 'available') return false;
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Consumer<PhoneProvider>(
+            builder: (context, provider, child) {
+              // Filter: only available phones for this brand, matching search query
+              final phones = provider.allPhones.where((p) {
+                if (p.brand != widget.brandName) return false;
+                if (p.status != 'available') return false;
 
-            if (_searchQuery.isEmpty) return true;
+                if (_searchQuery.isEmpty) return true;
 
-            final query = _searchQuery.toLowerCase();
-            return p.model.toLowerCase().contains(query) ||
-                p.imei1.toLowerCase().contains(query) ||
-                (p.imei2?.toLowerCase().contains(query) ?? false) ||
-                (p.color?.toLowerCase().contains(query) ?? false) ||
-                (p.storage?.toLowerCase().contains(query) ?? false) ||
-                p.sellingPrice.toString().contains(query);
-          }).toList();
+                final query = _searchQuery.toLowerCase();
+                return p.model.toLowerCase().contains(query) ||
+                    p.imei1.toLowerCase().contains(query) ||
+                    (p.imei2?.toLowerCase().contains(query) ?? false) ||
+                    (p.color?.toLowerCase().contains(query) ?? false) ||
+                    (p.storage?.toLowerCase().contains(query) ?? false) ||
+                    p.sellingPrice.toString().contains(query);
+              }).toList();
 
-          if (phones.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.mobile_off_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No available phones for ${widget.brandName}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
+              if (phones.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.mobile_off_outlined,
+                          size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No available phones for ${widget.brandName}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }
+                );
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            physics: const BouncingScrollPhysics(),
-            itemCount: phones.length,
-            itemBuilder: (context, index) {
-              final phone = phones[index];
-              return PhoneCard(
-                phone: phone,
-                onEdit: () => _navigateToEditScreen(phone),
-                onDelete: () => _confirmDelete(phone.id!),
-                onSell: () => _handleSell(phone),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth > 600) {
+                    // Grid View for Tablet/Desktop
+                    int crossAxisCount;
+                    if (constraints.maxWidth > 1200) {
+                      crossAxisCount = 4;
+                    } else if (constraints.maxWidth > 900) {
+                      crossAxisCount = 3;
+                    } else {
+                      crossAxisCount = 2;
+                    }
+
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.8, // Adjust for phone card height
+                      ),
+                      itemCount: phones.length,
+                      itemBuilder: (context, index) {
+                        final phone = phones[index];
+                        return PhoneCard(
+                          phone: phone,
+                          onEdit: () => _navigateToEditScreen(phone),
+                          onDelete: () => _confirmDelete(phone.id!),
+                          onSell: () => _handleSell(phone),
+                        );
+                      },
+                    );
+                  } else {
+                    // List View for Mobile
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: phones.length,
+                      itemBuilder: (context, index) {
+                        final phone = phones[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: PhoneCard(
+                            phone: phone,
+                            onEdit: () => _navigateToEditScreen(phone),
+                            onDelete: () => _confirmDelete(phone.id!),
+                            onSell: () => _handleSell(phone),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddPhoneDialog(context),

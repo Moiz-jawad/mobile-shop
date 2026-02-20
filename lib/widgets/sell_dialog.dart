@@ -39,7 +39,10 @@ class _SellDialogState extends State<SellDialog> {
 
     return Dialog(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 450, maxHeight: 550),
+        constraints: BoxConstraints(
+          maxWidth: 450,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

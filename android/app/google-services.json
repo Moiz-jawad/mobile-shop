@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "596605891115",
+    "project_id": "mobile-shop-management-deec8",
+    "storage_bucket": "mobile-shop-management-deec8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:596605891115:android:d4feefc4dde5939396706e",
+        "android_client_info": {
+          "package_name": "com.example.mobile_shop_management_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVcZE8XV1JMJq_6HpryoQ2jTBC9H62Svo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

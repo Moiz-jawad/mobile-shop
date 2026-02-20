@@ -119,7 +119,7 @@ class MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 1200),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
@@ -182,7 +182,17 @@ class MyHomePageState extends State<MyHomePage> {
 
                     return LayoutBuilder(
                       builder: (context, constraints) {
-                        final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+                        int crossAxisCount;
+                        if (constraints.maxWidth > 1200) {
+                          crossAxisCount = 5;
+                        } else if (constraints.maxWidth > 900) {
+                          crossAxisCount = 4;
+                        } else if (constraints.maxWidth > 500) {
+                          crossAxisCount = 3;
+                        } else {
+                          crossAxisCount = 2;
+                        }
+
                         return GridView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

@@ -40,53 +40,69 @@ class _AppNavigationState extends State<AppNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final isLargeScreen = MediaQuery.of(context).size.width > 800;
-
     return Scaffold(
-      body: Row(
-        children: [
-          if (isLargeScreen)
-            NavigationRail(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              labelType: NavigationRailLabelType.all,
-              destinations: const [
-                NavigationRailDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  selectedIcon: Icon(Icons.dashboard),
-                  label: Text('Dashboard'),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isLargeScreen = constraints.maxWidth > 800;
+
+          if (isLargeScreen) {
+            return Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
+                  labelType: NavigationRailLabelType.all,
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.dashboard_outlined),
+                      selectedIcon: Icon(Icons.dashboard),
+                      label: Text('Dashboard'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.inventory_2_outlined),
+                      selectedIcon: Icon(Icons.inventory_2),
+                      label: Text('Inventory'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.history_outlined),
+                      selectedIcon: Icon(Icons.history),
+                      label: Text('Sales'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.analytics_outlined),
+                      selectedIcon: Icon(Icons.analytics),
+                      label: Text('Analytics'),
+                    ),
+                  ],
                 ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.inventory_2_outlined),
-                  selectedIcon: Icon(Icons.inventory_2),
-                  label: Text('Inventory'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.history_outlined),
-                  selectedIcon: Icon(Icons.history),
-                  label: Text('Sales'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.analytics_outlined),
-                  selectedIcon: Icon(Icons.analytics),
-                  label: Text('Analytics'),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: _screens,
+                  ),
                 ),
               ],
-            ),
-          // Use IndexedStack to keep all screens alive
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: _screens,
-            ),
-          ),
-        ],
+            );
+          } else {
+            return Column(
+              children: [
+                Expanded(
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: _screens,
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
-      bottomNavigationBar: !isLargeScreen
+      bottomNavigationBar: MediaQuery.of(context).size.width <= 800
           ? BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
               currentIndex: _selectedIndex,

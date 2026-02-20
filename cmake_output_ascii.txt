@@ -1,0 +1,58 @@
+cmake : CMake Error at 
+flutter/CMakeLists.txt:7 
+(include):
+At line:1 char:1
++ cmake -S windows -B 
+build/windows > 
+cmake_output.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (C  
+  Make Error at ...xt:7   
+  (include)::String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+  include could not find 
+requested file:
+
+    C:/development/mobile_
+shop_management_system/win
+dows/flutter/ephemeral/gen
+erated_config.cmake
+
+
+-- Using cached Firebase SDK zip file
+cmake -E tar: error: ZIP 
+decompression failed (-5)
+CMake Error at C:/developm
+ent/mobile_shop_management
+_system/build/windows/extr
+acted/firebase_cpp_sdk_win
+dows/CMakeLists.txt:17 
+(cmake_minimum_required):
+  Compatibility with 
+CMake < 3.5 has been 
+removed from CMake.
+
+  Update the VERSION 
+argument <min> value.  
+Or, use the <min>...<max> 
+syntax
+  to tell CMake that the 
+project requires at least 
+<min> but has been updated
+  to work with policies 
+introduced by <max> or 
+earlier.
+
+  Or, add -DCMAKE_POLICY_V
+ERSION_MINIMUM=3.5 to try 
+configuring anyway.
+
+
+-- Configuring incomplete, errors occurred!

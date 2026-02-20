@@ -59,72 +59,77 @@ class _SalesScreenState extends State<SalesScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Consumer<SalesProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Consumer<SalesProvider>(
+            builder: (context, provider, child) {
+              if (provider.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (provider.sales.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
+              if (provider.sales.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No sales recorded yet',
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No sales recorded yet',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                );
+              }
+
+              return Column(
+                children: [
+                  // Summary Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    child: Column(
+                      children: [
+                        Text(
+                          "Today's Total Sales",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${NumberFormat('#,##0', 'en_US').format(provider.todayTotalSales)} PKR',
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: provider.sales.length,
+                      itemBuilder: (context, index) {
+                        final sale = provider.sales[index];
+                        return _SaleListItem(sale: sale);
+                      },
+                    ),
                   ),
                 ],
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              // Summary Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                color: Theme.of(
-                  context,
-                ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                child: Column(
-                  children: [
-                    Text(
-                      "Today's Total Sales",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${NumberFormat('#,##0', 'en_US').format(provider.todayTotalSales)} PKR',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.sales.length,
-                  itemBuilder: (context, index) {
-                    final sale = provider.sales[index];
-                    return _SaleListItem(sale: sale);
-                  },
-                ),
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }
